@@ -1,0 +1,209 @@
+var appNexusAdsLoaded = false;
+
+/**
+ * Checks the document's ready state and
+ * returns true if 'interactive' or 'complete'
+ */
+function isReady() {
+
+    return (
+        document.readyState === "interactive" ||
+        document.readyState === "complete"
+    );
+
+}
+
+/**
+ * Calling this function returns an object
+ * with the serp params (ads, sites, urls)
+ */
+function serpObj() {
+
+    var ads = {
+        RIGHT_SQUARE  : 0,
+        RIGHT_TOWER   : 1
+    };
+
+    var sites = {
+        ASK     : 0,
+        MYWAY   : 1,
+        NORTON  : 2,
+        UNKNOWN : 99
+    };
+
+    var urls = {
+        ASK_RIGHT_SQUARE        : "//secure.adnxs.com/tt?id=12703732",
+        MYWAY_RIGHT_SQUARE      : "//secure.adnxs.com/tt?id=12239457",
+        MYWAY_RIGHT_TOWER       : "//secure.adnxs.com/tt?id=11842956",
+        NORTON_RIGHT_SQUARE     : "//ib.adnxs.com/tt?id=12379567",
+        NORTON_RIGHT_TOWER      : "//secure.adnxs.com/tt?id=11842965"
+    };
+
+    return {
+        ads     : ads,
+        sites   : sites,
+        urls    : urls
+    };
+
+}
+
+/**
+ * Checks the window.location.hostname or uses
+ * the passed in hostname to determine what
+ * site we are looking at
+ * @param {string} hostname - optional
+ */
+function getSite(hostname) {
+
+    var hostname = hostname || window.location.hostname;
+
+    if (hostname.indexOf("nortonsafe") != -1) {
+        return serpObj().sites.NORTON;
+    } else if (hostname.indexOf("myway") != -1) {
+        return serpObj().sites.MYWAY;
+    } else if (hostname.indexOf("search.ask.com") != -1) {
+        return serpObj().sites.ASK;
+    } else {
+        return serpObj().sites.UNKNOWN;
+    }
+
+}
+
+/**
+ * Returns an iframe object given a site
+ * obtained from getSite and an ad position
+ * @param {string} site - A valid serp site
+ * @param {string} adPos - RIGHT_SQUARE or RIGHT_TOWER
+ */
+function getIframeObj(site, adPos) {
+
+    var serp            = serpObj();
+    var iframe          = document.createElement("iframe");
+    iframe.scrolling    = "no";
+    iframe.frameBorder  = 0;
+
+    if (adPos === serp.ads.RIGHT_SQUARE) {
+
+        iframe.width    = 300;
+        iframe.height   = 250;
+
+        if (site === serp.sites.ASK) {
+            iframe.src = serp.urls.ASK_RIGHT_SQUARE;
+        } else if (site === serp.sites.MYWAY) {
+            iframe.src = serp.urls.MYWAY_RIGHT_SQUARE;
+        } else if (site === serp.sites.NORTON) {
+            iframe.src = serp.urls.NORTON_RIGHT_SQUARE;
+        } else {
+            return undefined;
+        }
+
+    } else if (adPos === serp.ads.RIGHT_TOWER) {
+
+        iframe.width    = 160;
+        iframe.height   = 600;
+
+        if (site === serp.sites.MYWAY) {
+            iframe.src = serp.urls.MYWAY_RIGHT_TOWER;
+        } else if (site === serp.sites.NORTON) {
+            iframe.src = serp.urls.NORTON_RIGHT_TOWER;
+        } else {
+            return undefined;
+        }
+
+    } else {
+        return undefined;
+    }
+
+    return iframe;
+
+}
+
+/** 
+ * Appends vigLinks to the Right Rail 
+ */
+function vigLinksRR(site){
+
+    var adsDiv = document.getElementById("nonGoogleAdsRR");
+
+    if (!adsDiv) {
+        return false;
+    }
+
+    // 300x250
+    if (site == serpObj().sites.NORTON) {
+        var vglnk_cuids = vglnk_cuids || {};
+        vglnk_cuids["platform-198"] = "";
+        $(adsDiv).append('<div style="border: 1px black solid;display: inline-block"><scr' + 'ipt type="text/javascript" data-offerbox-id="198" data-api-key="cce9c39fc35d44fbd6acf80d79fb6e1c" data-width="300" data-height="250">(function(d, t) { var s = d.createElement(t); s.type = "text/javascript"; s.async = true; s.src = "//cdn.viglink.com/api/widgets/offerbox.js"; d.head.appendChild( s );}(document, "script"));</scr' + 'ipt></div>');
+    } else {
+        var vglnk_cuids = vglnk_cuids || {};
+        vglnk_cuids["platform-199"] = "";
+        $(adsDiv).append('<div style="border: 1px black solid;display: inline-block;"><scr' + 'ipt type="text/javascript" data-offerbox-id="199" data-api-key="2fdce4751f1328e5533f0684e1e35f05" data-width="300" data-height="250">(function(d, t) { var s = d.createElement(t); s.type = "text/javascript"; s.async = true; s.src = "//cdn.viglink.com/api/widgets/offerbox.js"; d.head.appendChild( s );}(document, "script"));</scr' + 'ipt></div>');
+    }
+
+    adsDiv.style.display = "block";
+
+    return true;
+}
+
+/**
+ * Appends the iframe object to the
+ * nonGoogleAdsRR div
+ * @param {object} adsIframe - The iframe returned from getIframeObj(...)
+ */
+function appNexusRR(adsIframe) {
+
+    var adsDiv = document.getElementById("nonGoogleAdsRR");
+
+    if (!adsIframe || adsIframe === undefined || !adsDiv) {
+        return false;
+    }
+
+    adsDiv.appendChild(adsIframe);
+    adsDiv.style.display = "block";
+
+    return true;
+
+}
+
+/**
+ * Registers the non google ads callback
+ */
+registerCallBackHandler('sponsoredBottom', function() {
+
+    function callNonGoogleAds() {
+
+        var serp    = serpObj();
+        var site    = getSite();
+
+        if (site === serp.sites.MYWAY || site === serp.sites.NORTON) {
+
+            if ( !appNexusAdsLoaded && (!CSA['topAdsBlock'].adsReturned || CSA.isTimeout) ) {
+
+                var iframe              = undefined;
+                var vigLinksRight       = document.getElementsByClassName('vigLinksRight')[0];
+                var appNexusRightTower  = document.getElementsByClassName('appNexusRightTower')[0];
+                var appNexusRightSquare = document.getElementsByClassName('appNexusRightSquare')[0];
+
+                if (typeof(vigLinksRight) !== "undefined") {
+                    appNexusAdsLoaded = vigLinksRR(site);
+                } else if (typeof(appNexusRightSquare) !== "undefined") {
+                    appNexusAdsLoaded = appNexusRR(getIframeObj(site, serp.ads.RIGHT_SQUARE));
+                } else if (typeof(appNexusRightTower) !== "undefined") {
+                    appNexusAdsLoaded = appNexusRR(getIframeObj(site, serp.ads.RIGHT_TOWER));
+                }
+
+            }
+
+        }
+
+    }
+
+    if ( isReady() ) {
+        callNonGoogleAds();
+    } else {
+        window.domReady(function(){
+            callNonGoogleAds();
+        })
+    }
+
+});
